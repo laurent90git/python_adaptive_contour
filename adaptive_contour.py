@@ -124,7 +124,7 @@ def adaptive_contour(chi2fn, x_1D, y_1D, contour_levels, max_depth = 4, interp_p
     all_xyz = np.array(list(all_xyz)).T
 
     grid_x = np.linspace(x_1D[0], x_1D[-1], interp_points)
-    grid_y = np.linspace(y_1D[0], y_1D[-1], interp_points + 1) # So that the grid can't get mistakenly transposed.
+    grid_y = np.linspace(y_1D[0], y_1D[-1], interp_points + 1) # Different length so that the grid can't get mistakenly transposed.
     grid_z = griddata(all_xyz[:2].T, all_xyz[2], tuple(np.meshgrid(grid_x, grid_y)), method='linear')#'cubic')
 
     return all_xyz, grid_x, grid_y, grid_z
