@@ -30,7 +30,7 @@ def xmap(func, iterable, processes=None):
 
 
 
-def recursive_adapt(chi2fn, x_1D, y_1D, z_2D, z_2D_mask, contour_levels, all_xyz, cur_depth, max_depth):
+def recursive_adapt(chi2fn, x_1D, y_1D, z_2D, z_2D_mask, contour_levels, all_xyz, cur_depth, max_depth, use_parallel):
     all_to_run = []
     all_to_run_ij = []
     
@@ -43,9 +43,19 @@ def recursive_adapt(chi2fn, x_1D, y_1D, z_2D, z_2D_mask, contour_levels, all_xyz
                 #z_2D_mask[j,i] = 1
 
 
+    if use_parallel:
+        all_results = xmap(chi2fn, all_to_run)
+    else:
+        all_results = []
 
-    all_results = xmap(chi2fn, all_to_run)
+        if len(all_to_run) > 5:
+            range_to_use = tqdm.tqdm
+        else:
+            range_to_use = lambda x: x
 
+        for item in range_to_use(all_to_run):
+            all_results.append(chi2fn(item))
+        
     assert len(all_results) == len(all_to_run_ij)
 
     for i in range(len(all_results)):
@@ -102,7 +112,7 @@ def recursive_adapt(chi2fn, x_1D, y_1D, z_2D, z_2D_mask, contour_levels, all_xyz
                     new_sub_mask[1,:] = 0
                     new_sub_mask[:,1] = 0
 
-                    all_xyz.extend(recursive_adapt(chi2fn = chi2fn, x_1D = sub_x, y_1D = sub_y, z_2D = new_sub_z, z_2D_mask = new_sub_mask, contour_levels = contour_levels, all_xyz = [], cur_depth = cur_depth + 1, max_depth = max_depth))
+                    all_xyz.extend(recursive_adapt(chi2fn = chi2fn, x_1D = sub_x, y_1D = sub_y, z_2D = new_sub_z, z_2D_mask = new_sub_mask, contour_levels = contour_levels, all_xyz = [], cur_depth = cur_depth + 1, max_depth = max_depth, use_parallel = use_parallel))
 
     for i in range(len(x_1D)):
         for j in range(len(y_1D)):
@@ -112,10 +122,10 @@ def recursive_adapt(chi2fn, x_1D, y_1D, z_2D, z_2D_mask, contour_levels, all_xyz
                 
     return all_xyz
 
-def adaptive_contour(chi2fn, x_1D, y_1D, contour_levels, max_depth = 4, interp_points = 500):
+def adaptive_contour(chi2fn, x_1D, y_1D, contour_levels, max_depth = 4, interp_points = 500, use_parallel = True):
     all_xyz = recursive_adapt(chi2fn = lambda xy: chi2fn(xy[0], xy[1]), x_1D = x_1D, y_1D = y_1D,
                               z_2D = np.zeros([len(y_1D), len(x_1D)], dtype=np.float64),
-                              z_2D_mask = np.zeros([len(y_1D), len(x_1D)], dtype=np.int16), contour_levels = contour_levels, all_xyz = [], cur_depth = 1, max_depth = max_depth)
+                              z_2D_mask = np.zeros([len(y_1D), len(x_1D)], dtype=np.int16), contour_levels = contour_levels, all_xyz = [], cur_depth = 1, max_depth = max_depth, use_parallel = use_parallel)
 
     print(len(all_xyz))
     all_xyz = set(all_xyz)
